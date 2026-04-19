@@ -1,3 +1,9 @@
+# TO DO:
+# Next Audio file feature
+# Auto next feature
+# Randomizer
+# Best Parts selection
+
 # --- IMPORTS ---
 import board
 import busio
@@ -6,7 +12,7 @@ from adafruit_pn532 import PN532_I2C
 
 import time
 import vlc
-
+import pathlib
 # ---
 
 
@@ -16,22 +22,22 @@ DEBUG = True
 
 
 # --- AUDIO SETUP ---
+projectDir = "/home/PLACEHOLDER_USER/.local/share/Aeyro-MusicPlayer/"
 
 # VLC Setup
-instance = vlc.Instance()
+instance = vlc.Instance('--no-video')
 player = instance.media_player_new()
 
-# adding a var for the path so that I dont need to type it out everytime i call it
-audioPath = "/home/PLACEHOLDER_USER/audio/"
+# adding a var for the paths so that I dont need to type it out everytime i call it
+audioPath = projectDir + "music/"
+failurePath = projectDir + "failure/"
 
 # Self Explanatory
 audioFileMapping = {
-    "failure"         : "womp_womp.mp3",
-
     # "keyword_on_the_nfc_card" : "audio_file_name"
 }
 
-FAILURE = audioFileMapping.get("failure")
+FAILURE = failurePath + "womp_womp.mp3"
 # ---
 
 
@@ -50,12 +56,10 @@ keyword = None
 PREVIOUS_KEYWORD = None
 # ---
 
-
 if DEBUG:
-    print("[DEBUG] Connected to PN532")
+    print(f"[DEBUG] Connected to PN532") # useless f-string but it looks better with the line below
     print(f"[DEBUG] Firmware: IC: {ic}, VER: {ver}, REV: {rev}, SUPPORT: {support}")
-    print("[DEBUG] Scan a card")
-
+    print(f"[DEBUG] Scan a card") # useless f-string but it looks better with the line above
 
 # Gets board uid to check if board exists
 def getBoardUID():
@@ -104,27 +108,39 @@ def stripKeyword(data) -> str:
     return data.decode("UTF-8").strip('\x00')
 
 
+# Adds basic IO control
+def basicIO(command):
+    # --- Mapping some tags for IO control ---
+    if command == "stop":
+        player.stop()
+        return 1
+
+    if command == "pause":
+        player.pause()
+        return 1
+
+    if command == "resume":
+        player.play()
+        return 1
+    return 0
+    # ---
+
+
 # loads audio to then play, only VLC
 def loadAudio(filename):
     media = instance.media_new(audioPath + filename)
     player.set_media(media)
 
+def loadFailure():
+    media = instance.media_new(FAILURE)
+    player.set_media(media)
 
 # Plays audio
 def playAudio(name):
-    # --- Mapping some tags for IO control ---
-    if name == "stop":
-        player.stop()
-        return
+    commandUsage = basicIO(name)
 
-    if name == "pause":
-        player.pause()
+    if commandUsage == 1:
         return
-
-    if name == "resume":
-        player.play()
-        return
-    # ---
 
     filename = audioFileMapping.get(name)
 
@@ -138,7 +154,7 @@ def playAudio(name):
         if DEBUG:
             print("[DEBUG] File not found")
         if not player.is_playing():
-            loadAudio(FAILURE)
+            loadFailure()
             player.play()
         else:
             return
