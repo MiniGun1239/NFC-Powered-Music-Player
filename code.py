@@ -1,12 +1,11 @@
 # --- IMPORTS ---
 import board
 import busio
-from adafruit_hid import keyboard
 
 from adafruit_pn532 import PN532_I2C
 
 import time
-import pygame
+import vlc
 
 # ---
 
@@ -17,10 +16,15 @@ DEBUG = True
 
 
 # --- AUDIO SETUP ---
-pygame.mixer.init()
 
+# VLC Setup
+instance = vlc.Instance()
+player = instance.media_player_new()
+
+# adding a var for the path so that I dont need to type it out everytime i call it
 audioPath = "/home/PLACEHOLDER_USER/audio/"
 
+# Self Explanatory
 audioFileMapping = {
     "failure"         : "womp_womp.mp3",
 
@@ -100,35 +104,44 @@ def stripKeyword(data) -> str:
     return data.decode("UTF-8").strip('\x00')
 
 
-def playAudio(name):
-    filename = audioFileMapping.get(name)
+# loads audio to then play, only VLC
+def loadAudio(filename):
+    media = instance.media_new(audioPath + filename)
+    player.set_media(media)
 
+
+# Plays audio
+def playAudio(name):
     # --- Mapping some tags for IO control ---
     if name == "stop":
-        pygame.mixer.music.stop()
+        player.stop()
         return
 
     if name == "pause":
-        pygame.mixer.music.pause()
+        player.pause()
         return
 
     if name == "resume":
-        pygame.mixer.music.unpause()
+        player.play()
         return
     # ---
 
+    filename = audioFileMapping.get(name)
+
     # --- Play Audio ---
     if filename:
-        pygame.mixer.music.load(audioPath + filename)
-        pygame.mixer.music.play()
+        loadAudio(filename)
+        player.play()
+        return
 
     else: # if not filename
         if DEBUG:
             print("[DEBUG] File not found")
-        if not pygame.mixer.music.get_busy():
-            pygame.mixer.music.load(audioPath + audioFileMapping.get(FAILURE))
+        if not player.is_playing():
+            loadAudio(audioFileMapping["failure"])
+            player.play()
         else:
-            pass
+            return
     # ---
 
 
