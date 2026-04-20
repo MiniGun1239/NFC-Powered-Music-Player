@@ -1,7 +1,8 @@
 # TO DO:
+# Auto find audio files
 # Next Audio file feature
 # Auto next feature
-# Randomizer
+# Shuffler
 # Best Parts selection
 
 # --- IMPORTS ---
@@ -12,7 +13,7 @@ from adafruit_pn532 import PN532_I2C
 
 import time
 import vlc
-import pathlib
+from pathlib import Path
 # ---
 
 
@@ -21,23 +22,26 @@ DEBUG = True
 # ---
 
 
-# --- AUDIO SETUP ---
-projectDir = "/home/PLACEHOLDER_USER/.local/share/Aeyro-MusicPlayer/"
+# --- PATH SETUP ---
+home = Path.home()
+projectDir = home / ".local" / "share" / "Aeyro-MusicPlayer"
 
-# VLC Setup
+
+# --- AUDIO SETUP ---
+  # VLC Setup
 instance = vlc.Instance('--no-video')
 player = instance.media_player_new()
 
-# adding a var for the paths so that I dont need to type it out everytime i call it
-audioPath = projectDir + "music/"
-failurePath = projectDir + "failure/"
+  # adding a var for the paths so that I dont need to type it out everytime i call it
+audioPath = projectDir / "music"
+failurePath = projectDir / "failure"
 
-# Self Explanatory
+  # Self Explanatory
 audioFileMapping = {
     # "keyword_on_the_nfc_card" : "audio_file_name"
 }
 
-FAILURE = failurePath + "womp_womp.mp3"
+FAILURE = failurePath / "womp_womp.mp3"
 # ---
 
 
@@ -60,6 +64,7 @@ if DEBUG:
     print(f"[DEBUG] Connected to PN532") # useless f-string but it looks better with the line below
     print(f"[DEBUG] Firmware: IC: {ic}, VER: {ver}, REV: {rev}, SUPPORT: {support}")
     print(f"[DEBUG] Scan a card") # useless f-string but it looks better with the line above
+
 
 # Gets board uid to check if board exists
 def getBoardUID():
@@ -126,14 +131,17 @@ def basicIO(command):
     # ---
 
 
-# loads audio to then play, only VLC
+# loads any audio within the music/ folder
 def loadAudio(filename):
-    media = instance.media_new(audioPath + filename)
+    media = instance.media_new(audioPath / filename)
     player.set_media(media)
 
+
+# loads the failure audio
 def loadFailure():
     media = instance.media_new(FAILURE)
     player.set_media(media)
+
 
 # Plays audio
 def playAudio(name):
